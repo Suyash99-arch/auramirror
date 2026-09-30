@@ -1,0 +1,18 @@
+.nav {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(960px, calc(100% - 32px));
+  padding: 10px 14px 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+  border-radius: 999px;
+}
+.logo { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 1.15rem; }
+.nav-links { display: flex; gap: 28px; color: var(--muted); font-size: 0.95rem; }
+.nav-links a:hover { color: var(--text); }
+.btn-sm { padding: 10px 22px; font-size: 0.9rem; }
+@media (max-width: 640px) { .nav-links { display: none; } }
