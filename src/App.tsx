@@ -4,6 +4,7 @@ import Home from "./pages/Home/Home";
 
 // Studio (Three.js + MediaPipe) loads only when someone opens /studio
 const Studio = lazy(() => import("./pages/Studio/Studio"));
+const Gallery = lazy(() => import("./pages/Gallery/Gallery"));
 
 function StudioLoading() {
   return (
@@ -30,6 +31,14 @@ export default function App() {
         element={
           <Suspense fallback={<StudioLoading />}>
             <Studio />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/gallery"
+        element={
+          <Suspense fallback={<StudioLoading />}>
+            <Gallery />
           </Suspense>
         }
       />

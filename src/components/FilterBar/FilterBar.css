@@ -1,0 +1,53 @@
+.filter-bar {
+  position: absolute;
+  bottom: 62px; /* sits just above the gesture hint */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 999px;
+  z-index: 6;
+  max-width: calc(100% - 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+
+.filter-chip {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.filter-chip.active { color: #fff; }
+
+/* the sliding highlight behind the active chip */
+.filter-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.55);
+  z-index: 0;
+}
+.filter-icon,
+.filter-name { position: relative; z-index: 1; }
+.filter-icon { font-size: 0.95rem; }
+
+@media (max-width: 760px) {
+  .filter-name { display: none; }
+  .filter-chip { padding: 8px 11px; }
+}

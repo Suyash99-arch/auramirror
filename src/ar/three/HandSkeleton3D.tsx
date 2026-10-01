@@ -1,15 +1,30 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { memo, useEffect, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import { handBus } from "../handBus";
 
 // which joints connect to which (MediaPipe hand model)
 const BONES: [number, number][] = [
-  [0, 1], [1, 2], [2, 3], [3, 4],          // thumb
-  [0, 5], [5, 6], [6, 7], [7, 8],          // index
-  [5, 9], [9, 10], [10, 11], [11, 12],     // middle
-  [9, 13], [13, 14], [14, 15], [15, 16],   // ring
-  [13, 17], [17, 18], [18, 19], [19, 20],  // pinky
-  [0, 17],                                  // palm edge
+  [0, 1],
+  [1, 2],
+  [2, 3],
+  [3, 4], // thumb
+  [0, 5],
+  [5, 6],
+  [6, 7],
+  [7, 8], // index
+  [5, 9],
+  [9, 10],
+  [10, 11],
+  [11, 12], // middle
+  [9, 13],
+  [13, 14],
+  [14, 15],
+  [15, 16], // ring
+  [13, 17],
+  [17, 18],
+  [18, 19],
+  [19, 20], // pinky
+  [0, 17], // palm edge
 ];
 const TIPS = [4, 8, 12, 16, 20];
 const COLORS = [0x22d3ee, 0xa78bfa]; // hand 1 cyan, hand 2 violet
@@ -25,14 +40,18 @@ type Rig = {
   opacity: number;
 };
 
-export default function HandSkeleton3D({ ready, videoRef }: Props) {
+export default memo(function HandSkeleton3D({ ready, videoRef }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!ready || !canvasRef.current) return;
     const canvas = canvasRef.current;
 
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+    });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     const scene = new THREE.Scene();
     // pixel-space camera: 1 unit = 1 css pixel
@@ -113,21 +132,25 @@ export default function HandSkeleton3D({ ready, videoRef }: Props) {
 
         // pinch = thumb tip close to index tip, relative to hand size
         const size = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y) || 0.1;
-        const pinch = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / size < 0.35;
+        const pinch =
+          Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / size < 0.35;
         col.set(pinch ? PINK : COLORS[idx]);
         rig.mats.forEach((m) => m.color.copy(col));
 
         const pts = lm.map((p) => {
           const x = offX + p.x * vw * s;
           const y = h - (offY + p.y * vh * s); // three.js y points up
-          const z = -p.z * vw * s;             // closer to camera = bigger z
+          const z = -p.z * vw * s; // closer to camera = bigger z
           const depth = Math.min(2.2, Math.max(0.6, 1 - p.z * 4));
           return { x, y, z, depth };
         });
 
         pts.forEach((p, i) => {
           const isTip = TIPS.includes(i);
-          const r = (isTip ? 7 : 4.5) * p.depth * (pinch && (i === 4 || i === 8) ? 1.6 : 1);
+          const r =
+            (isTip ? 7 : 4.5) *
+            p.depth *
+            (pinch && (i === 4 || i === 8) ? 1.6 : 1);
           rig.joints[i].position.set(p.x, p.y, p.z);
           rig.joints[i].scale.setScalar(r);
         });
@@ -159,4 +182,4 @@ export default function HandSkeleton3D({ ready, videoRef }: Props) {
   }, [ready, videoRef]);
 
   return <canvas ref={canvasRef} className="hand-layer" />;
-}
+});

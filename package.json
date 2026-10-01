@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server/index.js",
+    "dev:all": "concurrently -k -n api,web -c blue,green \"npm:server\" \"npm:dev\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -28,6 +30,7 @@
     "@types/react-dom": "^19.2.4",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.0",
+    "concurrently": "^10.0.5",
     "eslint": "^10.9.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.4",

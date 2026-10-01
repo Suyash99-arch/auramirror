@@ -9,7 +9,7 @@ export function useFaceTracking(
   videoRef: RefObject<HTMLVideoElement | null>,
   canvasRef: RefObject<HTMLCanvasElement | null>,
   enabled: boolean,
-  worn: string[]
+  worn: string[],
 ) {
   const wornRef = useRef(worn);
   const [faceFound, setFaceFound] = useState(false);
@@ -24,6 +24,7 @@ export function useFaceTracking(
     let raf = 0;
     let cancelled = false;
     let lastTime = -1;
+    let lastDetectionAt = 0;
     let lastFound = false;
     let smooth: NormalizedLandmark[] | null = null;
 
@@ -35,7 +36,16 @@ export function useFaceTracking(
           raf = requestAnimationFrame(tick);
           const video = videoRef.current;
           const canvas = canvasRef.current;
-          if (!video || !canvas || video.readyState < 2 || video.currentTime === lastTime) return;
+          if (
+            !video ||
+            !canvas ||
+            video.readyState < 2 ||
+            video.currentTime === lastTime
+          )
+            return;
+          const now = performance.now();
+          if (now - lastDetectionAt < 1000 / 30) return;
+          lastDetectionAt = now;
           lastTime = video.currentTime;
 
           const w = canvas.clientWidth;
@@ -47,9 +57,9 @@ export function useFaceTracking(
           const ctx = canvas.getContext("2d")!;
           ctx.clearRect(0, 0, w, h);
 
-          const result = landmarker.detectForVideo(video, performance.now());
+          const result = landmarker.detectForVideo(video, now);
           faceBus.result = result; // share with the 3D layer
-          faceBus.t = performance.now();
+          faceBus.t = now;
 
           const lm = result.faceLandmarks[0];
           const found = !!lm;
@@ -63,7 +73,13 @@ export function useFaceTracking(
                   y: p.y + (lm[i].y - p.y) * 0.6,
                 }))
               : lm.map((p) => ({ ...p }));
-            const face = buildFace(smooth, video.videoWidth, video.videoHeight, w, h);
+            const face = buildFace(
+              smooth,
+              video.videoWidth,
+              video.videoHeight,
+              w,
+              h,
+            );
             drawWorn(ctx, wornRef.current, face);
           } else {
             smooth = null;

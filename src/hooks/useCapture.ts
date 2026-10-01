@@ -1,25 +1,35 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 
 export function useCapture(
   videoRef: RefObject<HTMLVideoElement | null>,
   overlayRef: RefObject<HTMLCanvasElement | null>,
-  enabled: boolean
+  enabled: boolean,
+  filter: string = "none", // CSS filter string applied to the camera image
 ) {
-  const [count, setCount] = useState<number | null>(null);
+  const [countdownActive, setCountdownActive] = useState(false);
   const [flash, setFlash] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const photoRef = useRef<string | null>(null);
   const busy = useRef(false);
-  const timers = useRef<number[]>([]);
+  const flashTimer = useRef<number | null>(null);
+  const filterRef = useRef(filter);
 
   useEffect(() => {
-    const t = timers.current;
-    return () => t.forEach((id) => clearTimeout(id));
-  }, []);
+    filterRef.current = filter;
+  }, [filter]);
 
-  const later = useCallback((fn: () => void, ms: number) => {
-    timers.current.push(window.setTimeout(fn, ms));
-  }, []);
+  useEffect(
+    () => () => {
+      if (flashTimer.current !== null) clearTimeout(flashTimer.current);
+    },
+    [],
+  );
 
   const snap = useCallback(() => {
     busy.current = false;
@@ -45,7 +55,12 @@ export function useCapture(
     ctx.save();
     ctx.translate(w, 0);
     ctx.scale(-1, 1);
+
+    // colour filter applies to the camera image only
+    ctx.filter = filterRef.current;
     ctx.drawImage(video, (w - vw * s) / 2, (h - vh * s) / 2, vw * s, vh * s);
+    ctx.filter = "none";
+
     ctx.drawImage(overlay, 0, 0); // 2D makeup
     if (three && three.width && three.height) {
       ctx.drawImage(three, 0, 0, w, h); // 3D accessories on top
@@ -61,23 +76,24 @@ export function useCapture(
     photoRef.current = url;
     setPhoto(url);
     setFlash(true);
-    later(() => setFlash(false), 350);
-  }, [videoRef, overlayRef, later]);
+    if (flashTimer.current !== null) clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setFlash(false), 350);
+  }, [videoRef, overlayRef]);
+
+  const completeCountdown = useCallback(() => {
+    setCountdownActive(false);
+    snap();
+  }, [snap]);
 
   const start = useCallback(() => {
     if (!enabled || busy.current || photoRef.current) return;
     busy.current = true;
-    setCount(3);
-    later(() => setCount(2), 1000);
-    later(() => setCount(1), 2000);
-    later(() => {
-      setCount(null);
-      snap();
-    }, 3000);
-  }, [enabled, snap, later]);
+    setCountdownActive(true);
+  }, [enabled]);
 
   const close = useCallback(() => {
     photoRef.current = null;
+    busy.current = false;
     setPhoto(null);
   }, []);
 
@@ -90,5 +106,13 @@ export function useCapture(
     a.click();
   }, []);
 
-  return { count, flash, photo, start, close, download };
+  return {
+    countdownActive,
+    completeCountdown,
+    flash,
+    photo,
+    start,
+    close,
+    download,
+  };
 }

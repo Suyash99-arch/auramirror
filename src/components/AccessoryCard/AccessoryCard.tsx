@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import type { Accessory } from "../../types/accessory";
 import "./AccessoryCard.css";
@@ -8,7 +9,7 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-export default function AccessoryCard({ item, active, onSelect }: Props) {
+export default memo(function AccessoryCard({ item, active, onSelect }: Props) {
   return (
     <motion.button
       className={`acc-card glass ${active ? "active" : ""}`}
@@ -24,4 +25,4 @@ export default function AccessoryCard({ item, active, onSelect }: Props) {
       <span className="acc-name">{item.name}</span>
     </motion.button>
   );
-}
+});

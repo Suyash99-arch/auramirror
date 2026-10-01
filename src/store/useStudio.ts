@@ -5,7 +5,9 @@ import { accessories } from "../data/accessories";
 interface StudioState {
   collection: Collection;
   worn: string[];
+  filter: string; // id of the active colour filter ("none" = original)
   setCollection: (c: Collection) => void;
+  setFilter: (id: string) => void;
   toggle: (id: string) => void;
   clear: () => void;
 }
@@ -15,7 +17,9 @@ const slotOf = (id: string) => accessories.find((a) => a.id === id)?.slot;
 export const useStudio = create<StudioState>((set) => ({
   collection: "unisex",
   worn: [],
+  filter: "none",
   setCollection: (collection) => set({ collection }),
+  setFilter: (filter) => set({ filter }),
   toggle: (id) =>
     set((s) => {
       if (s.worn.includes(id)) return { worn: s.worn.filter((w) => w !== id) };
