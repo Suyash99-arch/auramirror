@@ -1,6 +1,6 @@
 import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
 
-export type Gesture = "point" | "pinch" | "palm" | "fist";
+export type Gesture = "point" | "pinch" | "palm" | "fist" | "victory";
 
 export interface HandInfo {
   gesture: Gesture;
@@ -21,16 +21,18 @@ export function analyzeHand(
   vh: number,
   wasPinching: boolean
 ): HandInfo {
-  const size = d(lm[0], lm[9], vw, vh) || 1;                 // wrist to middle knuckle
-  const pinchRatio = d(lm[4], lm[8], vw, vh) / size;         // thumb tip to index tip
-  const indexReach = d(lm[8], lm[0], vw, vh) / size;         // curled index = small
-  const extended = FINGERS.filter(
+  const size = d(lm[0], lm[9], vw, vh) || 1;
+  const pinchRatio = d(lm[4], lm[8], vw, vh) / size;
+  const indexReach = d(lm[8], lm[0], vw, vh) / size;
+  const ext = FINGERS.map(
     ([tip, pip]) => d(lm[tip], lm[0], vw, vh) > d(lm[pip], lm[0], vw, vh) * 1.08
-  ).length;
+  );
+  const extended = ext.filter(Boolean).length;
 
   let gesture: Gesture = "point";
   if (pinchRatio < (wasPinching ? 0.5 : 0.3) && indexReach > 0.95) gesture = "pinch";
   else if (extended === 4) gesture = "palm";
+  else if (ext[0] && ext[1] && !ext[2] && !ext[3]) gesture = "victory";
   else if (extended === 0) gesture = "fist";
 
   return {

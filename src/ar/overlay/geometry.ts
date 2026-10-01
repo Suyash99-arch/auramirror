@@ -4,11 +4,15 @@ export interface Pt { x: number; y: number }
 
 export interface FaceGeo {
   pts: Pt[];       // all 478 landmarks in canvas pixels
-  eyeL: Pt;        // eye center on the left side of the image
-  eyeR: Pt;        // eye center on the right side of the image
+  eyeL: Pt;
+  eyeR: Pt;
   eyeMid: Pt;      // point between the eyes
   eyeDist: number; // outer-corner to outer-corner distance (our unit "u")
   roll: number;    // head tilt in radians
+  top: Pt;         // top of the forehead
+  chin: Pt;
+  headW: number;   // face width at ear level
+  faceH: number;   // forehead to chin
 }
 
 export const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -33,5 +37,9 @@ export function buildFace(
     eyeMid: mid(eyeL, eyeR),
     eyeDist: dist(pts[33], pts[263]),
     roll: angle(pts[33], pts[263]),
+    top: pts[10],
+    chin: pts[152],
+    headW: dist(pts[234], pts[454]),
+    faceH: dist(pts[10], pts[152]),
   };
 }

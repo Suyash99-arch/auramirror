@@ -8,7 +8,7 @@ const features = [
   { icon: "🖐️", title: "Hand gesture control", text: "Move your finger to point, pinch to select, swipe to scroll. No mouse, no keyboard." },
   { icon: "🎯", title: "Face-locked accessories", text: "Glasses, caps and chains follow your face and stay exactly where they belong." },
   { icon: "💄", title: "Makeup and hair", text: "Try eyeliner, bindis and hairstyles floating right next to you." },
-  { icon: "📸", title: "Capture and share", text: "Hold a pinch for one second to snap your look." },
+  { icon: "📸", title: "Capture and share", text: "Hold a peace sign for one second to snap your look." },
 ];
 
 const steps = [

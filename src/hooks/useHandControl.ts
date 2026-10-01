@@ -2,13 +2,14 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { getHandLandmarker } from "../ar/handTracking/handLandmarker";
 import { analyzeHand, type Gesture } from "../gestures/gestures";
 
-const MARGIN = 0.1; // use the middle 80% of the camera view so screen edges are easy to reach
+const MARGIN = 0.1;
+const HOLD_MS = 900;
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 function toScreen(p: { x: number; y: number }) {
   const nx = clamp01((p.x - MARGIN) / (1 - 2 * MARGIN));
   const ny = clamp01((p.y - MARGIN) / (1 - 2 * MARGIN));
-  return { x: (1 - nx) * window.innerWidth, y: ny * window.innerHeight }; // mirrored
+  return { x: (1 - nx) * window.innerWidth, y: ny * window.innerHeight };
 }
 
 function nearestRail(x: number): HTMLElement | null {
@@ -29,15 +30,18 @@ export function useHandControl(
   videoRef: RefObject<HTMLVideoElement | null>,
   cursorRef: RefObject<HTMLDivElement | null>,
   enabled: boolean,
-  onFistHold: () => void
+  onFistHold: () => void,
+  onVictoryHold: () => void
 ) {
   const [gesture, setGesture] = useState<Gesture | "none">("none");
   const [loadError, setLoadError] = useState(false);
   const fistCb = useRef(onFistHold);
+  const victoryCb = useRef(onVictoryHold);
 
   useEffect(() => {
     fistCb.current = onFistHold;
-  }, [onFistHold]);
+    victoryCb.current = onVictoryHold;
+  }, [onFistHold, onVictoryHold]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -54,8 +58,9 @@ export function useHandControl(
     let pinching = false;
     let lastClick = 0;
     let hovered: HTMLElement | null = null;
-    let fistSince = 0;
-    let fistFired = false;
+    let holdG: Gesture | null = null;
+    let holdSince = 0;
+    let holdFired = false;
     let prevY: number | null = null;
     let scrollV = 0;
     let activeRail: HTMLElement | null = null;
@@ -79,7 +84,6 @@ export function useHandControl(
         const tick = () => {
           raf = requestAnimationFrame(tick);
 
-          // momentum scrolling runs every frame
           if (Math.abs(scrollV) > 0.3 && activeRail) {
             activeRail.scrollTop += scrollV;
             scrollV *= 0.9;
@@ -104,24 +108,24 @@ export function useHandControl(
             pinching = false;
             hasCursor = false;
             prevY = null;
-            fistSince = 0;
-            fistFired = false;
+            holdG = null;
+            holdFired = false;
             return;
           }
 
           const info = analyzeHand(lm, video.videoWidth, video.videoHeight, pinching);
           const g = info.gesture;
+          const passive = g === "palm" || g === "fist" || g === "victory";
 
-          // where should the cursor go?
           const tip = toScreen(info.tip);
           if (!hasCursor) {
             cur.x = target.x = tip.x;
             cur.y = target.y = tip.y;
             hasCursor = true;
-          } else if (g === "palm" || g === "fist") {
+          } else if (passive) {
             target = toScreen(info.palm);
           } else if (g !== "pinch" && info.pinchRatio > 0.65) {
-            target = tip; // freeze while the fingers are closing so the click lands where you aimed
+            target = tip;
           }
           cur.x += (target.x - cur.x) * 0.45;
           cur.y += (target.y - cur.y) * 0.45;
@@ -131,8 +135,7 @@ export function useHandControl(
             cursorEl.className = `hand-cursor on ${g}`;
           }
 
-          // hover
-          setHover(g === "palm" || g === "fist" ? null : elementAt(cur.x, cur.y));
+          setHover(passive ? null : elementAt(cur.x, cur.y));
 
           // pinch = click
           if (g === "pinch") {
@@ -160,16 +163,19 @@ export function useHandControl(
             prevY = null;
           }
 
-          // fist held = clear
-          if (g === "fist") {
-            if (!fistSince) fistSince = now;
-            else if (!fistFired && now - fistSince > 900) {
-              fistFired = true;
-              fistCb.current();
+          // fist = clear, peace sign = capture (hold for ~1 second)
+          if (g === "fist" || g === "victory") {
+            if (holdG !== g) {
+              holdG = g;
+              holdSince = now;
+              holdFired = false;
+            } else if (!holdFired && now - holdSince > HOLD_MS) {
+              holdFired = true;
+              (g === "fist" ? fistCb : victoryCb).current();
             }
           } else {
-            fistSince = 0;
-            fistFired = false;
+            holdG = null;
+            holdFired = false;
           }
 
           if (g !== lastGesture) {
