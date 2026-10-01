@@ -20,3 +20,11 @@
 }
 .camera-icon { font-size: 3.5rem; }
 .camera-overlay p { max-width: 380px; line-height: 1.6; }
+.camera-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1); /* mirrored exactly like the video */
+  pointer-events: none;
+}

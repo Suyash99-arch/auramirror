@@ -4,14 +4,16 @@ import "./Camera.css";
 
 interface Props {
   videoRef: RefObject<HTMLVideoElement | null>;
+  canvasRef: RefObject<HTMLCanvasElement | null>;
   status: CameraStatus;
   onStart: () => void;
 }
 
-export default function Camera({ videoRef, status, onStart }: Props) {
+export default function Camera({ videoRef, canvasRef, status, onStart }: Props) {
   return (
     <div className="camera">
       <video ref={videoRef} className="camera-video" playsInline muted />
+      <canvas ref={canvasRef} className="camera-canvas" />
 
       {status !== "ready" && (
         <div className="camera-overlay">

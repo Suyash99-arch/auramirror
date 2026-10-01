@@ -1,17 +1,17 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import Camera from "../../components/Camera/Camera";
 import AccessoryCard from "../../components/AccessoryCard/AccessoryCard";
 import { useCamera } from "../../hooks/useCamera";
-import { useStudio } from "../../store/useStudio";
-import { accessories } from "../../data/accessories";
-import type { Collection } from "../../types/accessory";
-import "./Studio.css";
+import { useFaceTracking } from "../../hooks/useFaceTracking";
 
 const tabs: Collection[] = ["men", "women", "unisex"];
 
 export default function Studio() {
-  const { videoRef, status, start } = useCamera();
+  const { videoRef, canvasRef, status, start } = useCamera();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { collection, setCollection, worn, toggle, clear } = useStudio();
+  const { faceFound, loadError } = useFaceTracking(videoRef, canvasRef, status === "ready", worn);
 
   const list = accessories.filter((a) => a.collections.includes(collection));
   const left = list.filter((_, i) => i % 2 === 0);
@@ -33,7 +33,14 @@ export default function Studio() {
             </button>
           ))}
         </div>
-        <span className="status">{status === "ready" ? "● Live" : "○ Camera off"}</span>
+                <section className="stage">
+          <Camera videoRef={videoRef} canvasRef={canvasRef} status={status} onStart={start} />
+          {loadError && (
+            <div className="glass" style={{ position: "absolute", top: 16, left: 16, padding: "10px 16px", fontSize: "0.85rem" }}>
+              Face model failed to load. Check that public/models and public/wasm exist.
+            </div>
+          )}
+        </section>
       </header>
 
       <main className="studio-main">
