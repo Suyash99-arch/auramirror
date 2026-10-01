@@ -26,7 +26,6 @@ export default defineConfig({
               name: "three",
               test: /node_modules[\\/]three[\\/]/,
               priority: 20,
-              maxSize: 400 * 1024,
             },
             {
               name: "react-vendor",
