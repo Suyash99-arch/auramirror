@@ -6,6 +6,8 @@ Install dependencies with `npm install`, then run `npm run dev:all` to start the
 
 For separate processes, use `npm run dev` and `npm run server` in two terminals.
 
+For the deployed gallery, create a **private Vercel Blob store** and connect it to the AuraMirror Vercel project for Production and Preview. This supplies the Blob store/OIDC environment values used by the `/api` functions. Check `/api/health` to confirm storage is configured.
+
 The API listens on port `3001` by default. Set `API_PORT` to use a different port and update the Vite proxy target accordingly.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
