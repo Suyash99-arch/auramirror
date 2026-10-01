@@ -3,6 +3,7 @@ import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
 import { getFaceLandmarker } from "../ar/faceTracking/faceLandmarker";
 import { buildFace } from "../ar/overlay/geometry";
 import { drawWorn } from "../ar/overlay/drawers";
+import { faceBus } from "../ar/faceBus";
 
 export function useFaceTracking(
   videoRef: RefObject<HTMLVideoElement | null>,
@@ -47,6 +48,9 @@ export function useFaceTracking(
           ctx.clearRect(0, 0, w, h);
 
           const result = landmarker.detectForVideo(video, performance.now());
+          faceBus.result = result; // share with the 3D layer
+          faceBus.t = performance.now();
+
           const lm = result.faceLandmarks[0];
           const found = !!lm;
 

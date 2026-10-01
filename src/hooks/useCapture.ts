@@ -27,6 +27,9 @@ export function useCapture(
     const overlay = overlayRef.current;
     if (!video || !overlay || !overlay.width || !overlay.height) return;
 
+    // the Three.js canvas that holds the 3D accessories
+    const three = document.querySelector<HTMLCanvasElement>(".three-layer");
+
     const w = overlay.width;
     const h = overlay.height;
     const vw = video.videoWidth;
@@ -43,7 +46,10 @@ export function useCapture(
     ctx.translate(w, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, (w - vw * s) / 2, (h - vh * s) / 2, vw * s, vh * s);
-    ctx.drawImage(overlay, 0, 0);
+    ctx.drawImage(overlay, 0, 0); // 2D makeup
+    if (three && three.width && three.height) {
+      ctx.drawImage(three, 0, 0, w, h); // 3D accessories on top
+    }
     ctx.restore();
 
     ctx.font = `600 ${Math.round(w * 0.022)}px Inter, sans-serif`;

@@ -11,6 +11,7 @@ export function getFaceLandmarker(): Promise<FaceLandmarker> {
           baseOptions: { modelAssetPath: "/models/face_landmarker.task", delegate },
           runningMode: "VIDEO",
           numFaces: 1,
+          outputFacialTransformationMatrixes: true, // head rotation + position for 3D
         });
       try {
         return await make("GPU");

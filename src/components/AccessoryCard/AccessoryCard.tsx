@@ -12,6 +12,7 @@ export default function AccessoryCard({ item, active, onSelect }: Props) {
   return (
     <motion.button
       className={`acc-card glass ${active ? "active" : ""}`}
+      data-acc-id={item.id}
       onClick={() => onSelect(item.id)}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}

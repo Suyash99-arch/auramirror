@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { getHandLandmarker } from "../ar/handTracking/handLandmarker";
+import { handBus } from "../ar/handBus";
+import { dragBus } from "../ar/dragBus";
 import { analyzeHand, type Gesture } from "../gestures/gestures";
 
 const MARGIN = 0.1;
 const HOLD_MS = 900;
+const DRAG_PX = 45; // how far you move while pinching before it becomes a drag
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 function toScreen(p: { x: number; y: number }) {
@@ -26,22 +29,32 @@ function nearestRail(x: number): HTMLElement | null {
   return best;
 }
 
+function overStage(x: number, y: number) {
+  const el = document.querySelector<HTMLElement>(".stage");
+  if (!el) return false;
+  const b = el.getBoundingClientRect();
+  return x > b.left && x < b.right && y > b.top && y < b.bottom;
+}
+
 export function useHandControl(
   videoRef: RefObject<HTMLVideoElement | null>,
   cursorRef: RefObject<HTMLDivElement | null>,
   enabled: boolean,
   onFistHold: () => void,
-  onVictoryHold: () => void
+  onVictoryHold: () => void,
+  onDrop: (id: string) => void
 ) {
   const [gesture, setGesture] = useState<Gesture | "none">("none");
   const [loadError, setLoadError] = useState(false);
   const fistCb = useRef(onFistHold);
   const victoryCb = useRef(onVictoryHold);
+  const dropCb = useRef(onDrop);
 
   useEffect(() => {
     fistCb.current = onFistHold;
     victoryCb.current = onVictoryHold;
-  }, [onFistHold, onVictoryHold]);
+    dropCb.current = onDrop;
+  }, [onFistHold, onVictoryHold, onDrop]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -65,6 +78,13 @@ export function useHandControl(
     let scrollV = 0;
     let activeRail: HTMLElement | null = null;
 
+    // pinch-and-drag state
+    let anchor = { x: 0, y: 0 };
+    let midStart = { x: 0, y: 0 };
+    let pendingEl: HTMLElement | null = null;
+    let pendingId: string | null = null;
+    let dragId: string | null = null;
+
     const setHover = (el: HTMLElement | null) => {
       if (hovered && hovered !== el) hovered.classList.remove("hand-hover");
       if (el && !el.classList.contains("hand-hover")) el.classList.add("hand-hover");
@@ -75,6 +95,16 @@ export function useHandControl(
       const el = document.elementFromPoint(x, y)?.closest("button, a") as HTMLElement | null;
       if (!el || (el as HTMLButtonElement).disabled) return null;
       return el;
+    };
+
+    const stageEl = () => document.querySelector<HTMLElement>(".stage");
+
+    const cancelDrag = () => {
+      dragId = null;
+      pendingEl = null;
+      pendingId = null;
+      dragBus.id = null;
+      stageEl()?.classList.remove("drop-ready");
     };
 
     getHandLandmarker()
@@ -96,7 +126,10 @@ export function useHandControl(
           lastTime = video.currentTime;
 
           const now = performance.now();
-          const lm = landmarker.detectForVideo(video, now).landmarks[0];
+          const result = landmarker.detectForVideo(video, now);
+          handBus.hands = result.landmarks; // share with the 3D hand layer
+          handBus.t = now;
+          const lm = result.landmarks[0];
 
           if (!lm) {
             if (lastGesture !== "none") {
@@ -106,6 +139,7 @@ export function useHandControl(
             cursorEl?.classList.remove("on");
             setHover(null);
             pinching = false;
+            cancelDrag();
             hasCursor = false;
             prevY = null;
             holdG = null;
@@ -122,34 +156,77 @@ export function useHandControl(
             cur.x = target.x = tip.x;
             cur.y = target.y = tip.y;
             hasCursor = true;
+          }
+
+          // midpoint between thumb tip and index tip = the "pinch point"
+          const midScreen = toScreen({
+            x: (lm[4].x + lm[8].x) / 2,
+            y: (lm[4].y + lm[8].y) / 2,
+          });
+
+          // pinch just started
+          if (g === "pinch" && !pinching) {
+            pinching = true;
+            anchor = { x: cur.x, y: cur.y };
+            midStart = midScreen;
+            const el = elementAt(cur.x, cur.y);
+            const accId = el?.dataset.accId ?? null;
+            if (el && accId) {
+              // accessory card: wait to see if this is a click or a drag
+              pendingEl = el;
+              pendingId = accId;
+            } else if (el && now - lastClick > 450) {
+              lastClick = now;
+              el.click();
+            }
+          }
+
+          // cursor target
+          if (g === "pinch") {
+            // move relative to where the pinch started (no jump when fingers close)
+            target = {
+              x: anchor.x + (midScreen.x - midStart.x),
+              y: anchor.y + (midScreen.y - midStart.y),
+            };
           } else if (passive) {
             target = toScreen(info.palm);
-          } else if (g !== "pinch" && info.pinchRatio > 0.65) {
+          } else if (info.pinchRatio > 0.65) {
             target = tip;
           }
           cur.x += (target.x - cur.x) * 0.45;
           cur.y += (target.y - cur.y) * 0.45;
+
+          // pinch held: start dragging once the hand has moved far enough
+          if (g === "pinch" && pendingId && !dragId) {
+            if (Math.hypot(cur.x - anchor.x, cur.y - anchor.y) > DRAG_PX) {
+              dragId = pendingId;
+              dragBus.id = dragId;
+            }
+          }
+          if (dragId) {
+            dragBus.x = cur.x;
+            dragBus.y = cur.y;
+            stageEl()?.classList.toggle("drop-ready", overStage(cur.x, cur.y));
+          }
+
+          // pinch released
+          if (g !== "pinch" && pinching) {
+            pinching = false;
+            if (dragId) {
+              if (overStage(cur.x, cur.y)) dropCb.current(dragId);
+            } else if (pendingEl && now - lastClick > 450) {
+              lastClick = now;
+              pendingEl.click(); // quick pinch with no movement = click
+            }
+            cancelDrag();
+          }
 
           if (cursorEl) {
             cursorEl.style.transform = `translate(${cur.x}px, ${cur.y}px)`;
             cursorEl.className = `hand-cursor on ${g}`;
           }
 
-          setHover(passive ? null : elementAt(cur.x, cur.y));
-
-          // pinch = click
-          if (g === "pinch") {
-            if (!pinching) {
-              pinching = true;
-              const el = elementAt(cur.x, cur.y);
-              if (el && now - lastClick > 450) {
-                lastClick = now;
-                el.click();
-              }
-            }
-          } else {
-            pinching = false;
-          }
+          setHover(passive || dragId ? null : elementAt(cur.x, cur.y));
 
           // open palm = scroll
           if (g === "palm") {
@@ -190,6 +267,7 @@ export function useHandControl(
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
+      cancelDrag();
       setHover(null);
       cursorEl?.classList.remove("on");
     };
