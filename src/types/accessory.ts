@@ -8,6 +8,7 @@ export interface Accessory {
   name: string;
   icon: string;
   category: string;
+  slot: string; // only one item per slot can be worn (e.g. one pair of glasses)
   collections: Collection[];
   anchor: Anchor;
   tags: string[];

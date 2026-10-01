@@ -84,3 +84,56 @@
   .studio-main { grid-template-columns: 90px 1fr 90px; }
   .wearing { display: none; }
 }
+.hud { display: flex; align-items: center; gap: 12px; }
+.gesture-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  min-width: 150px;
+  text-align: center;
+}
+
+.rail .acc-card { min-height: 126px; justify-content: center; }
+
+.guide {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+  z-index: 5;
+}
+.banner { position: absolute; top: 16px; left: 16px; padding: 10px 16px; font-size: 0.85rem; z-index: 5; }
+
+/* hand cursor */
+.hand-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  border: 3px solid var(--accent-2);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.8), inset 0 0 12px rgba(34, 211, 238, 0.5);
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.2s, width 0.15s, height 0.15s, margin 0.15s, background 0.15s, border-color 0.15s;
+  will-change: transform;
+}
+.hand-cursor.on { opacity: 1; }
+.hand-cursor.pinch { width: 26px; height: 26px; margin: -13px 0 0 -13px; background: rgba(34, 211, 238, 0.6); border-color: #fff; }
+.hand-cursor.palm { width: 70px; height: 70px; margin: -35px 0 0 -35px; border-style: dashed; border-color: #a78bfa; box-shadow: 0 0 28px rgba(167, 139, 250, 0.8); }
+.hand-cursor.fist { border-color: #f472b6; box-shadow: 0 0 28px rgba(244, 114, 182, 0.8); }
+
+.hand-hover {
+  outline: 2px solid var(--accent-2);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.7) !important;
+  filter: brightness(1.3);
+}
